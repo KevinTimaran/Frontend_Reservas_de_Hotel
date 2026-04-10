@@ -5,55 +5,48 @@ function App() {
   const [step, setStep] = useState(1);
   const [rooms, setRooms] = useState([]);
   const [booking, setBooking] = useState(null);
-  const [reservaDTO, setReservaDTO] = useState({
-    fechaInicio: '2026-04-10',
-    fechaFin: '2026-04-15',
-    tipoHabitacion: 'DOUBLE',
-    nombreHuesped: '',
-    documento: '',
-    correo: '',
-    telefono: ''
+  const [bookingDTO, setBookingDTO] = useState({
+    startDate: '2026-04-10',
+    endDate: '2026-04-15',
+    roomType: 'DOUBLE',
+    guestName: '',
+    document: '',
+    email: ''
   });
 
   const searchRooms = async () => {
-    const res = await hotelApi.getAvailability(reservaDTO.fechaInicio, reservaDTO.fechaFin, reservaDTO.tipoHabitacion);
-    setRooms(res.data);
+    try {
+      const res = await hotelApi.getAvailability(bookingDTO.startDate, bookingDTO.endDate, bookingDTO.roomType);
+      setRooms(res.data);
+    } catch (error) { console.error("Search failed"); }
   };
 
   const makeBooking = async () => {
-    const res = await hotelApi.createBooking(reservaDTO);
-    setBooking(res.data);
-    setStep(3);
-  };
-
-  const handleCheckIn = async () => {
-    const res = await hotelApi.doCheckIn(booking.id);
-    setBooking({ ...booking, llaveDigital: res.data, estado: 'CHECK_IN' });
-  };
-
-  const handleCheckOut = async () => {
-    const res = await hotelApi.doCheckOut(booking.id);
-    setBooking({ ...booking, factura: res.data, estado: 'CHECK_OUT' });
-    setStep(4);
+    try {
+      const res = await hotelApi.createBooking(bookingDTO);
+      setBooking(res.data);
+      setStep(3);
+    } catch (error) { console.error("Booking failed"); }
   };
 
   return (
     <div className="container mt-4">
-      <h2 className="mb-4">Hotel Booking System</h2>
+      <h2 className="text-center mb-4">Hotel Management System</h2>
 
       {step === 1 && (
-        <div className="card p-3">
-          <h4>Search Availability</h4>
-          <select className="form-select mb-2" onChange={e => setReservaDTO({...reservaDTO, tipoHabitacion: e.target.value})}>
-            <option value="SENCILLA">Sencilla</option>
-            <option value="DOBLE">Doble</option>
+        <div className="card p-4">
+          <h4>Room Search</h4>
+          <select className="form-select mb-3" onChange={e => setBookingDTO({...bookingDTO, roomType: e.target.value})}>
+            <option value="SINGLE">Single</option>
+            <option value="DOUBLE">Double</option>
             <option value="SUITE">Suite</option>
           </select>
-          <button className="btn btn-primary w-100" onClick={searchRooms}>Search</button>
-          <div className="mt-3">
-            {rooms.map(r => (
-              <div key={r.id} className="border p-2 mb-2 d-flex justify-content-between align-items-center">
-                <span>Room {r.numero} - ${r.precioBase}</span>
+          <button className="btn btn-primary w-100" onClick={searchRooms}>Check Availability</button>
+          
+          <div className="mt-4">
+            {rooms.map(room => (
+              <div key={room.id} className="card p-3 d-flex flex-row justify-content-between">
+                <span>Room {room.number} - {room.type}</span>
                 <button className="btn btn-sm btn-success" onClick={() => setStep(2)}>Select</button>
               </div>
             ))}
@@ -62,41 +55,23 @@ function App() {
       )}
 
       {step === 2 && (
-        <div className="card p-3">
-          <h4>Guest Details</h4>
-          <input className="form-control mb-2" placeholder="Full Name" onChange={e => setReservaDTO({...reservaDTO, nombreHuesped: e.target.value})} />
-          <input className="form-control mb-2" placeholder="Document" onChange={e => setReservaDTO({...reservaDTO, documento: e.target.value})} />
-          <input className="form-control mb-2" placeholder="Email" onChange={e => setReservaDTO({...reservaDTO, correo: e.target.value})} />
-          <button className="btn btn-success w-100" onClick={makeBooking}>Confirm Reservation</button>
+        <div className="card p-4">
+          <h4>Guest Information</h4>
+          <input className="form-control mb-2" placeholder="Full Name" onChange={e => setBookingDTO({...bookingDTO, guestName: e.target.value})} />
+          <input className="form-control mb-2" placeholder="Document ID" onChange={e => setBookingDTO({...bookingDTO, document: e.target.value})} />
+          <button className="btn btn-success w-100" onClick={makeBooking}>Confirm & Pay</button>
         </div>
       )}
 
       {step === 3 && booking && (
-        <div className="card p-3 shadow border-primary">
-          <h4>Booking Management</h4>
-          <p><strong>Guest:</strong> {booking.huesped.nombreCompleto}</p>
-          <p><strong>Status:</strong> <span className="badge bg-info">{booking.estado}</span></p>
+        <div className="card p-4 border-primary">
+          <h4>Reservation Panel</h4>
+          <p><strong>Status:</strong> {booking.status}</p>
           <div className="btn-group w-100">
-            <button className="btn btn-outline-primary" onClick={() => hotelApi.addService(booking.id, 'SPA')}>+ Spa</button>
-            <button className="btn btn-outline-dark" onClick={handleCheckIn}>Check-In</button>
-            <button className="btn btn-danger" onClick={handleCheckOut}>Check-Out</button>
+            <button className="btn btn-outline-info" onClick={() => hotelApi.addService(booking.id, 'SPA')}>Add Spa</button>
+            <button className="btn btn-outline-dark" onClick={() => hotelApi.doCheckIn(booking.id)}>Check-In</button>
+            <button className="btn btn-danger" onClick={() => setStep(4)}>Check-Out</button>
           </div>
-          {booking.llaveDigital && (
-            <div className="alert alert-success mt-3 text-center">
-              🔑 Digital Key: <strong>{booking.llaveDigital.codigoUUID}</strong>
-            </div>
-          )}
-        </div>
-      )}
-
-      {step === 4 && booking.factura && (
-        <div className="card p-4 border-dark">
-          <h3 className="text-center">Final Invoice</h3>
-          <hr />
-          <p>Hospedaje: ${booking.factura.subtotalHospedaje}</p>
-          <p>Servicios: ${booking.factura.subtotalServicios}</p>
-          <h4 className="text-end text-success">Total: ${booking.factura.total}</h4>
-          <button className="btn btn-secondary mt-3" onClick={() => window.print()}>Print Invoice</button>
         </div>
       )}
     </div>

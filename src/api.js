@@ -1,16 +1,16 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8080/api/hotel';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/hotel';
 
 export const hotelApi = {
-  getAvailability: (startDate, endDate, type) => 
-    axios.get(`${API_URL}/disponibilidad`, { params: { startDate, endDate, type } }),
+  getAvailability: (startDate, endDate, roomType) => 
+    axios.get(`${API_URL}/availability`, { params: { startDate, endDate, roomType } }),
 
-  createBooking: (bookingData) => 
-    axios.post(`${API_URL}/reservar`, bookingData),
+  createBooking: (bookingDTO) => 
+    axios.post(`${API_URL}/book`, bookingDTO),
 
   addService: (bookingId, serviceType) => 
-    axios.post(`${API_URL}/servicios/${bookingId}`, { type: serviceType }),
+    axios.post(`${API_URL}/services/${bookingId}`, { serviceType }),
 
   doCheckIn: (bookingId) => 
     axios.put(`${API_URL}/checkin/${bookingId}`),
@@ -18,6 +18,6 @@ export const hotelApi = {
   doCheckOut: (bookingId) => 
     axios.put(`${API_URL}/checkout/${bookingId}`),
 
-  getBookingDetails: (bookingId) => 
-    axios.get(`${API_URL}/reserva/${bookingId}`)
+  getBooking: (bookingId) => 
+    axios.get(`${API_URL}/reservation/${bookingId}`)
 };
